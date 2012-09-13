@@ -13,9 +13,9 @@ function commerce_payment_ean_commerce_payment_method_info() {
   $payment_methods = array();
 
   $payment_methods['commerce_payment_ean'] = array(
-    'title' => t('Example payment'),
-    'description' => t('Demonstrates complete payment during checkout and serves as a development example.'),
-    'active' => TRUE,
+    'title' => t('Electronic invoice (EAN)'),
+    'description' => t('Electronic invoice collects EAN number in the payment process.'),
+    'active' => FALSE,
   );
 
   return $payment_methods;
@@ -34,14 +34,14 @@ function commerce_payment_ean_submit_form($payment_method, $pane_values, $checko
 
   // Merge in default values.
   $pane_values += array(
-    'name' => '',
+    'ean' => '',
   );
 
-  $form['name'] = array(
+  $form['ean'] = array(
     '#type' => 'textfield',
     '#title' => t('EAN'),
     '#description' => t('Please supply the 13 digits long EAN number to direct the invoice to.'),
-    '#default_value' => $pane_values['name'],
+    '#default_value' => $pane_values['ean'],
     '#required' => TRUE,
   );
 
@@ -52,9 +52,9 @@ function commerce_payment_ean_submit_form($payment_method, $pane_values, $checko
  * Payment method callback: submit form validation.
  */
 function commerce_payment_ean_submit_form_validate($payment_method, $pane_form, $pane_values, $order, $form_parents = array()) {
-  // Throw an error if a long enough name was not provided.
-  if (strlen($pane_values['name']) != 13) {
-    form_set_error(implode('][', array_merge($form_parents, array('name'))), t('You must enter 13 digits for the EAN number.'));
+  // Throw an error if the EAN number does not conform to standards.
+  if (strlen($pane_values['ean']) != 13 AND !is_numeric($pane_values['ean'])) {
+    form_set_error(implode('][', array_merge($form_parents, array('ean'))), t('You must enter 13 digits for the EAN number.'));
 
     // Even though the form error is enough to stop the submission of the form,
     // it's not enough to stop it from a Commerce standpoint because of the
@@ -69,7 +69,7 @@ function commerce_payment_ean_submit_form_validate($payment_method, $pane_form, 
 function commerce_payment_ean_submit_form_submit($payment_method, $pane_form, $pane_values, $order, $charge) {
   $order->data['commerce_payment_ean'] = $pane_values;
 
-  commerce_payment_ean_transaction($payment_method, $order, $charge, $pane_values['name']);
+  commerce_payment_ean_transaction($payment_method, $order, $charge, $pane_values['ean']);
 }
 
 /**
@@ -81,17 +81,20 @@ function commerce_payment_ean_submit_form_submit($payment_method, $pane_form, $p
  *   The order object the payment applies to.
  * @param $charge
  *   An array indicating the amount and currency code to charge.
- * @param $name
- *   The name entered on the submission form.
+ * @param $ean
+ *   The ean entered on the submission form.
+ *
+ * @todo
+ *   Should probably save the EAN on the customer?
  */
-function commerce_payment_ean_transaction($payment_method, $order, $charge, $name) {
+function commerce_payment_ean_transaction($payment_method, $order, $charge, $ean) {
   $transaction = commerce_payment_transaction_new('commerce_payment_ean', $order->order_id);
   $transaction->instance_id = $payment_method['instance_id'];
   $transaction->amount = $charge['amount'];
   $transaction->currency_code = $charge['currency_code'];
   $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-  $transaction->message = 'Name: @name';
-  $transaction->message_variables = array('@name' => $name);
+  $transaction->message = 'EAN: @ean';
+  $transaction->message_variables = array('@ean' => $ean);
 
   commerce_payment_transaction_save($transaction);
 }
