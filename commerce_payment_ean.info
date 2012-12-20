@@ -1,6 +1,0 @@
-name = Commerce Payment EAN
-description = Provides a payment method for electronic invoices used in Denmark collecting the EAN number during the payment flow.
-package = Commerce
-dependencies[] = commerce
-dependencies[] = commerce_payment
-core = 7.x
